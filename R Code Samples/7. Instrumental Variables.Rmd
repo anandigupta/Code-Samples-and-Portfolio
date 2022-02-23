@@ -1,0 +1,163 @@
+---
+title: "Stats II HW 1"
+author: "Anandi Gupta"
+date: "2/21/2022"
+output:
+  pdf_document: default
+---
+
+## Preparation
+
+```{r setup, include=FALSE}
+# Load packages used in this session of R
+library(tidyverse)
+library(knitr)
+library(haven)
+library(fBasics)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(datasets)
+library(xtable)
+library(car)
+library(ggplot2)
+library(ivreg)
+library(statar)
+
+# As needed, set path to folder where data is located.
+opts_knit$set(root.dir = "/Users/anandigupta/Downloads")
+```
+
+## Problem 1
+
+### Step 1: Load data
+
+```{r}
+dta <-read_dta("iv_problem_set.dta")
+nrow(dta)
+colnames(dta)
+```
+
+Confirmed that the loaded data set has 100,000 observations and that the variables are lnearn (log earnings), female (indicator for female), S (years of schooling), xpr (years of experience), xpr2 (years of experience squared), and compulsoryS (years of compulsory schooling in the individual’s state).
+
+## Problem 2
+
+```{r}
+ols.1 <- lm(lnearn~ female + S + xpr + xpr2, data = dta)
+round(summary(ols.1)$coefficients, digits = 6)
+```
+
+Based on the OLS regression above, a 1 year increase in schooling is associated with a 15.1 percent increase in earnings, when controlling for gender and years of experience and years of experience squared. This is highly statistically significant (i.e., we can reject the null hypothesis that the return to schooling is 0).
+
+## Problem 3
+
+The regression likely suffers from endogeneity because students with higher ability/intelligence may be more likely to enroll in college and thus have more years of schooling (i.e. ability, which is in the error term is correlated with the independent variable years of schooling), and students with higher ability may perform better at work and earn higher wages (i.e, error term has an effect on the dependent variable earnings). 
+
+## Problem 4
+
+In order for state compulsory schooling years to be a valid instrument, it needs to satisfy the following conditions: 1) inclusion condition - state years of schooling is a statistically significant determinant of years of schooling (which can be tested statistically in the first stage of the 2SLS regression) and 2) the exclusion condition - state years of schooling do not directly affect the dependent variable wages and is not correlated with the error term in the main regression. This cannot be assessed statistically. However, if states with stricter schooling laws also have stricter labor laws and higher minimum wages (or higher cost of living) then this instrument may not be valid.
+
+
+## Problem 5
+
+```{r}
+bin = xtile(dta$compulsoryS, n = 20)
+bin_means=aggregate(bin,list(bin), mean)
+lnearn_means=aggregate(dta$lnearn,list(bin), mean)
+S_means=aggregate(dta$S,list(bin), mean)
+meandata = data.frame(bin_means[,2], lnearn_means[,2], S_means[,2])
+s_comp_reg = lm(meandata[,3] ~ meandata[,1])
+predict_s_comp <- data.frame(s_comp_pred = predict(s_comp_reg, meandata),
+                             meandata[,1])
+lnearn_comp_reg = lm(meandata[,2] ~ meandata[,1])
+predict_lnearn_comp <- data.frame(lnearn_comp_pred = 
+                                    predict(lnearn_comp_reg, meandata), meandata[,1])
+p1 = (ggplot(meandata, aes(x=meandata[,1], y=meandata[,3])) 
+      + geom_point() + labs(x = "Compulsory Shooling", y = "S",title = "First Stage") 
+      + geom_line(color='red',data = predict_s_comp, aes(x=meandata[,1], y=s_comp_pred)))
+p2 = (ggplot(meandata, aes(x=meandata[,1], 
+                          y=meandata[,2])) + geom_point() 
+      + labs(x = "Compulsory Schooling", y = "lnearn",title = "Reduced Form") 
+      + geom_line(color='red',data = predict_lnearn_comp, 
+                  aes(x=meandata[,1], y=lnearn_comp_pred)))
+```
+
+
+```{r}
+grid.arrange(p1, p2, nrow=1, top="IV Graphical Analysis") 
+```
+From the first stage plot we see that state compulsory schooling is a good predictor of actual years of schooling (strong positive correlation and good fit), indicating that the inclusion condition is met, making our instrumental variable a suitable choice if the exclusion condition is met. The reduced form graph shows us a positive relation of the instrument with log earnings, and assuming the exclusion condition is met (i.e compulsory schooling has no direct effect on earnings), this is an indirect effect through years of schooling. The ratio of the reduced form to the 1st stage estimate gives us the IV estimate.
+
+
+## Problem 6 
+
+First stage regression (Effect of compulsory schooling on schooling)
+
+```{r}
+fsmodel = lm(dta$S ~ dta$compulsoryS + dta$female + dta$xpr + dta$xpr2)
+round(summary(fsmodel)$coefficients, digits = 6)
+```
+
+We can confirm that compulsory schooling is a highly statistically significant determinant of the years of schooling (our independent variable of interest), when controlling for the other x variables, and therefore satisfies our inclusion condition.
+
+## Problem 7
+
+```{r}
+ivmodel<-ivreg(lnearn ~ female + xpr + xpr2 | S | compulsoryS , data = dta)
+round(summary(ivmodel)$coefficients, digits = 6)
+```
+
+The IV estimate for Schooling is 0.162, which means that a 1 unit increase in schooling is associated with a 16.2% increase in earnings. This estimate is slightly larger than the OLS estimate (15.1%) which could be because the OLS regression suffered from measurement error in the independent variable (attenuation bias) or because omitted variable bias was biasing the original estimate down. Lastly the IV estimate represents the local average treatment effect (rather than the ATE for the whole population), i.e., it is local to the part of the population whose choice of years of education varies with the state's compulsory schooling years. Thus, it may be larger due to heterogeneous treatment effects in the population (i.e., it is plausible that there are larger gains for those at the lower end of years of education, whose choice of years of education would be impacted by the state's compulsory schooling laws).
+
+
+## Problem 8
+
+```{r}
+#create interaction variable for female x years of schooling
+dta$femaleS <- dta$female * dta$S
+```
+
+```{r}
+#create interaction variable for female x instrument
+dta$femaleCompulsoryS <- dta$female * dta$compulsoryS
+```
+
+```{r}
+#first stage model for first endogenous variable
+fsmodel1 = lm(dta$S ~ dta$compulsoryS +  dta$femaleCompulsoryS + dta$female + dta$xpr + dta$xpr2)
+round(summary(fsmodel1)$coefficients, digits = 6)
+```
+
+```{r}
+#test joint significance of instruments
+linearHypothesis(fsmodel1, c("dta$compulsoryS=0", "dta$femaleCompulsoryS = 0"))
+```
+
+
+```{r}
+#first stage model for second endogenous variable
+fsmodel2 = lm(dta$femaleS ~ dta$compulsoryS +  dta$femaleCompulsoryS + dta$female + dta$xpr + dta$xpr2)
+round(summary(fsmodel2)$coefficients, digits = 6)
+```
+
+```{r}
+#test joint significance of instruments
+linearHypothesis(fsmodel2, c("dta$compulsoryS=0", "dta$femaleCompulsoryS = 0"))
+```
+
+As we can see from our first stage regressions, we have two valid instruments (compulsory S and female * Compulsory S) for our two endogenous variables (S and female * S) as at least one of the instruments was not equal to 0 in both regressions (i.e., the two instruments were jointly significant in both first stage regressions), satisfying the inclusion condition.
+
+## Problem 9
+
+```{r}
+ivmodel2 <- ivreg(lnearn ~ S + femaleS + female + xpr + xpr2 |
+  compulsoryS + femaleCompulsoryS + female + xpr + xpr2,
+  data = dta)
+
+round(summary(ivmodel2)$coefficients, digits = 6)
+```
+
+Based on the IV regression (with 2 instruments for S and female S), we see that the IV estimate for femaleS is 0.047 with a p value of 0.19, indicating that we cannot reject the hypothesis that the IV estimate of the coefficient on female*S is 0. This regression tells us that while years of schooling doess have a positive impact on earnings (a 1 year increase in schooling is associated with a 13.9% increase in earnings), the returns to schooling are no different for males and females (i.e., no effect of gender on returns to schooling).
+
+
+

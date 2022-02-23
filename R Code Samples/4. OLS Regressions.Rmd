@@ -1,0 +1,124 @@
+---
+title: "Chapter 5 Problem Set"
+author: "Anandi Gupta"
+date: "10/19/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Load packages used in this session of R
+library(tidyverse)
+library(knitr)
+library(haven)
+
+# As needed, set path to folder where data is located.
+opts_knit$set(root.dir = "/Users/anandigupta/Downloads")
+```
+
+
+## Problem 3
+
+### Step 1: Load data
+
+```{r}
+load ("Ch5_Exercise3_Cell_phone_subscriptions.RData")
+```
+
+
+
+
+#### Part a
+
+```{r}
+ols.1 <- lm(numberofdeaths ~ cell_subscription, data = dta)
+round(summary(ols.1)$coefficients, digits = 4)
+```
+
+We see a positive relationship between cell subscriptions and traffic deaths, such that for every 1 unit increase in subscriptions, deaths increase by 0.09. This relationship is statistically significant (p < 0.05). However, this regression likely suffers from endogeneity as it does not account for population (which sits in the error term). States with higher populations are more likely to have more cell subscriptions as well as more traffic deaths as more people are driving.
+
+
+#### Part b
+
+```{r}
+ols.2 <- lm(numberofdeaths ~ cell_subscription + population, data = dta)
+round(summary(ols.2)$coefficients, digits = 4)
+```
+
+After adding in population, we see that the coefficient on cell subscriptions is now negative, indicating that cell subscriptions and population are multicollinear. This is because the two variables are positively correlated with each other, which means the coefficients will be negatively correlated, leading to a wrong sign on one of the coefficients.
+
+#### Part c
+
+```{r}
+ols.3 <- lm(numberofdeaths ~ cell_subscription + population + total_miles_driven, data = dta)
+round(summary(ols.3)$coefficients, digits = 4)
+```
+
+When you add total miles driven we now see that cell subscriptions now have no effect on traffic deaths (the coefficient is positive but not statistically significant and therefore we cannot reject the null that the coefficient is 0). This is because although cell phone subscriptions, population, and total miles driven are all likely correlated, total miles driven better explains traffic deaths outside of just being an indicator for a higher population. For example, cell subscriptions and population are probably highly correlated but predominantly rural vs urban states likely have more variation in miles driven, and more people on the road specifically is likely what impacts traffic deaths (as opposed to just a larger population). 
+
+#### Part d
+
+```{r}
+aux.1 <- lm(population ~ cell_subscription + total_miles_driven, data = dta)
+round(summary(aux.1)$coefficients, digits = 4)
+summary(aux.1)$r.squared
+```
+
+```{r}
+## VIF
+VIF_1 <- 1/(1-summary(aux.1)$r.squared)
+VIF_1
+```
+
+
+```{r}
+aux.2 <- lm(total_miles_driven ~ cell_subscription + population, data = dta)
+round(summary(aux.2)$coefficients, digits = 4)
+summary(aux.2)$r.squared
+```
+
+```{r}
+## VIF
+VIF_2 <- 1/(1-summary(aux.2)$r.squared)
+VIF_2
+```
+
+Based on the two auxiliary regressions, we see that the VIF for population is 493 and for total miles driven is 43. VIF shows how much the variance is inflated due to multicollinearity between variable j and the other independent variables. As population is very highly correlated with other variables in our regression (almost entirely explained by the other two variables included in our regression), it has a high impact on the variance and makes our standard errors extremely large (less precise coefficients). As total miles driven is slightly less correlated with the other two variables (there are other factors such as percent urban which may impact the miles driven), it inflates variance by less (smaller standard errors and more precise coefficients).
+
+## Problem 4
+
+### Step 1: Load data
+
+```{r}
+load ("Ch5_Exercise4_Speeding_tickets.RData")
+```
+
+#### Part a
+
+```{r}
+ols.1 <- lm(Amount ~ Age, data = dta)
+round(summary(ols.1)$coefficients, digits = 4)
+```
+
+We see that age is negatively correlated with fines, such that a 1 year increase in age decreases fines by $0.28. However, this regression potentially suffers from endogeneity as the regression doesn't control for miles per hour over the speed limit. People who drive well over the speed limit may be more likely to be younger and less risk averse, as well as will receive higher fines.
+
+
+#### Part b
+
+```{r}
+ols.2 <- lm(Amount ~ Age + MPHover, data = dta)
+round(summary(ols.2)$coefficients, digits = 4)
+```
+
+When we control for miles per hour over the speed limit, we see that age now has no statistically significant relationship with fine amount. This is because the effect we were seeing of age is now being sucked up by the miles per hour over. This is because age is correlated with mph and mph explains the fines, so by not including mph we were biasing our age coefficients in our original regression. 
+
+
+#### Part c
+
+```{r}
+data_small = dta[1:1000,]
+ols.3 <- lm(Amount ~ Age + MPHover, data = data_small)
+round(summary(ols.3)$coefficients, digits = 4)
+```
+
+
+When we limit our data set to the first 1000 observations, we see that our standard errors for our coefficients become much larger and our t statistics become much smaller. This is because an analysis with a smaller sample has higher variance (as N is in the denominator of our variance of $\hat\beta_{j}$ equation, so a bigger sample makes the variance smaller). Smaller N results in lower power, making it more difficult to detect a statistically significant effect if it exists.

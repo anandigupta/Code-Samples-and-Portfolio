@@ -1,0 +1,124 @@
+---
+title: "Chapter 4 Problem Set - Textbook Problems"
+author: "Anandi Gupta"
+date: "10/04/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Load packages used in this session of R
+library(tidyverse)
+library(knitr)
+library(haven)
+
+# As needed, set path to folder where data is located.
+opts_knit$set(root.dir = "/Users/anandigupta/Downloads")
+```
+
+
+## Problem 1
+
+#### Step 1: Load data
+
+```{r}
+load ("Ch4_Exercise1_Height_and_Wages_US.RData")
+```
+
+
+#### Part a
+
+```{r}
+#plot all observations
+plot(dta$height85, dta$wage96,
+     main="Adult Wages by Height", 
+     xlab="Height", 
+     ylab="Wages",
+     pch=20,
+     cex = 1.0,
+     col="darkblue")
+
+```
+
+
+Due to outliers, the relationship between height and wages is not very clear from the above scatter plot, but there appears to be a weak positive relationship between height and wages (as height increases, wages increase).
+
+#### Part b 
+
+```{r}
+ols.1 = lm(dta$wage96 ~ dta$height85)
+summary(ols.1)
+```
+
+
+From the above regression summary we see that the intercept is -6.98, which is a bit meaningless, but represents the wage for a person with height 0. The coefficient on height85 is 0.31, which means that for every 1 inch increase in height, wages increase by $0.31. This coefficient has a t value of 3.8 and a p value of 0.000135, which indicate that the coefficient is statistically significant. Specifically, the p value tells us that there is less than a 1% chance that we would see a $\hat\beta_{1}$ value that large, if the null hypothesis (that $\hat\beta_{1}$ = 0) was true.
+
+#### Part c
+
+```{r}
+ols.2 = lm(dta$wage96 ~ dta$height81)
+summary(ols.2)
+```
+
+
+When running the regression to assess the effect of Height81 on wages, we now see a coefficient of 0.37, (t-value = 4.4, p < 0.01), indicating that there is less than a 1% chance that we would see a $\hat\beta_{1}$ value that large, if the null hypothesis (that $\hat\beta_{1}$ = 0) was true. Thus, we would reject the null hypothesis for a two sided hypothesis. We would also reject the null hypothesis for a one sided hypothesis that $\hat\beta_{1}$ > 0 as this would require a lower critical t value for the coefficient to be statistically significant. However, if the one-sided hypothesis was that $\hat\beta_{1}$ < 0, then we could not reject the null no matter how large the t value was, if we saw a positive $\hat\beta_{1}$. 
+
+
+## Problem 3
+
+#### Step 1: Load data
+
+```{r}
+load ("Ch4_Exercise3_Presidents_and_Economy.RData")
+```
+
+
+#### Part a 
+
+```{r}
+ols.1 = lm(dta$Unemployment ~ dta$LagDemPresident)
+summary(ols.1)
+```
+
+From the above regression summary we see that the intercept is 6.24, which  represents the unemployment rate if the president in the previous year was not a Democrat (aka Republican). The coefficient on LagDemPresident is -0.96, which means that when the president was democrat the previous year, unemployment rate decreases by 0.96. This coefficient has a t value of -2.46 and a p value of 0.0164, which indicate that the coefficient is statistically significant at the 5% level but not at the 1% level. 
+
+
+#### Part b
+
+
+```{r}
+ols.2 = lm(dta$ChangeGDPpc ~ dta$LagDemPresident)
+summary(ols.2)
+```
+
+From the above regression summary we see that the intercept is 481.1, which  represents the change in per capita GDP if the president in the previous year was not a Democrat (aka Republican). The coefficient on LagDemPresident is 220.0, which means that when the president was democrat the previous year, change in per capita GDP increases by 220. This coefficient has a t value of 1.34 and a p value of 0.186, which indicate that the coefficient is not statistically significant. The sample size is smaller because GDP was only tracked from 1962 to 2013, whereas unemployment was tracked from 1947 to 2013. So the values for change in GDP for the 15 years prior to 1962 are missing. 
+
+
+
+#### Part c 
+
+For both models, I choose an alpha level of 0.05 and a two sided hypothesis (aka my alternative hypothesis is that $\hat\beta_{1} \neq 0$). For the first model, we see a t value of -2.46 and a p value of 0.0164, which indicate that the coefficient is statistically significant at the 5% level. Thus we reject the null hypothesis here. For the second model, we see a t-value of 1.34 and a p value of 0.186, which indicate that the coefficient is not statistically significant. Thus, we cannot reject the null hypothesis here. 
+
+
+#### Part d
+
+For the first model, the p value of 0.0164 tells us that there is a 1.64% chance that we would see a $\hat\beta_{1}$ value that large, if the null hypothesis (that $\hat\beta_{1}$ = 0) was true. For the second model, the p value of 0.186 tells us that there is a fairly high (18.6%) chance that we would see a $\hat\beta_{1}$ value that large, if the null hypothesis (that $\hat\beta_{1}$ = 0) was true.
+
+
+#### Part e
+
+```{r}
+BetaRange = seq(0,800, 4) #changed beta range to 0 to 800
+stderrorBeta = 164.0 #used standard error from ols.2 above
+PowerCurve = pnorm(BetaRange/stderrorBeta - 2.40) #changed critical t value based on degrees of freedom (50) from 2.32 to 2.40
+plot(BetaRange, PowerCurve, xlab = "Beta", ylab = "Probability reject null", type = "l")
+```
+
+From the power curve above, you can see that for hypothetical $\beta_{1}$ values under 200, the probability of rejecting the null for a one sided alternate hypothesis and 1% alpha level given our sample size and standard error is very low (less than 20% chance), meaning that our analysis has low power (higher probability of making a Type II error). For hypothetical $\beta_{1}$ values of about 400, we have approximately a 50% chance of rejecting the null. For hypothetical $\beta_{1}$ values as high as 800, we will reject the null almost 100% of the time. 
+
+
+#### Part f
+
+Based on the power analysis above, we see that if the true value of $\beta_{1}$ is around 200 (which is very close to our $\hat\beta_{1}$ value of 220), the probability of rejecting the null hypothesis is very low (we would only reject the null about 20% of the time). We would need to observe a much higher $\hat\beta_{1}$ in order to reject the null if the true value of $\beta_{1}$ was not 0, but closer to 200 (as opposed to closer to 800).
+
+
+

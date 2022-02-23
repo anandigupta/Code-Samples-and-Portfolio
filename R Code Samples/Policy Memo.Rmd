@@ -1,0 +1,125 @@
+---
+title: "Policy Memo - Chapter 6 Problem Set"
+author: "Anandi Gupta"
+date: "11/10/2021"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE, message = FALSE, warning = FALSE}
+# Load packages used in this session of R
+library(tidyverse)
+library(knitr)
+library(haven)
+
+# As needed, set path to folder where data is located.
+opts_chunk$set(echo = TRUE)
+options(digits = 6)
+opts_knit$set(root.dir = "/Users/anandigupta/Downloads")
+```
+
+
+```{r message = FALSE, include = FALSE}
+load ("Ch6_PolicyMemo_LeadHomicides.RData")
+```
+
+# Question
+Is lead exposure associated with higher homicide rates in the U.S?
+
+# Summary
+
+When water acidity is high, the presence of lead pipes is associated with higher homicides per million.
+
+# Background
+In recent years, the public has grown concerned about the negative effects of lead exposure on health and behaviors.  We have data on crimes in U.S cities from 1921 to 1936.  We also have data on some indicators of lead exposure including data on the presence of lead pipes and measures of water acidity (scaled measure of PH such that high levels indicate more acidic water).  We focus on homicides as this was a key measure of crime (or negative behaviors) that was available in the data.
+
+
+# Methods
+We present three models.  In the first, homicides per million is simply a function of a dummy variable that indicates whether or not lead was present.
+\begin{eqnarray*}
+\textit{Homicides}_i &=& \beta_0 + \beta_1 \mbox{\emph{Lead}}_i + \epsilon_i         \label{eq:LeadDiffMean}
+\end{eqnarray*}
+
+However, we know that acidic water, which is likely correlated with the presence of lead, is likely a determinant of health and behavior.  Omitting a measure of water acidity could cause bias (assuming it is both correlated with the presence of lead and a determinant of homicides). In addition, controlling for water acidity will make our estimates more precise.
+
+\begin{eqnarray*}
+\textit{Homicides}_i &=& \beta_0 + \beta_1 \mbox{\emph{Lead}}_i + \beta_2 \mbox{\emph{Water Acidity}}_i + \epsilon_i         \label{eq:LeadOLS}
+\end{eqnarray*}
+
+Finally, and most importantly, we recognize that the presence of lead pipes interacts with water acidity.  If water acidity is high, the presence of lead pipes likely has a worse impact on health and behavior. Therefore, we also estimate a model that includes an interaction between the lead dummy and water acidity:
+
+\begin{eqnarray*}
+\textit{Homicides}_i &=& \beta_0 + \beta_1 \mbox{\emph{Lead}}_i + \beta_2 \mbox{\emph{Water Acidity}}_i\nonumber\\[2pt]
+                  & &   + \beta_3 \mbox{\emph{Lead}}_i \times \textit{Water Acidity}_i + \epsilon_i         \label{eq:LeadInteraction}
+\end{eqnarray*}
+
+
+```{r tidy = FALSE, echo = FALSE, include = FALSE}
+lead.Diff 	= lm(dta$homicide_per_million ~ dta$lead)
+lead.Ols 	= lm(dta$homicide_per_million ~ dta$lead + dta$acidity)
+lead.Interact	= lm(dta$homicide_per_million ~ dta$lead + dta$acidity + dta$Acidity_x_Lead)
+summary(lead.Diff)
+summary(lead.Ols)
+summary(lead.Interact)
+
+library(apsrtable)
+apsrtable(lead.Diff, lead.Ols, lead.Interact, model.names= c("(a)", "(b)", "(c)"), 	
+coef.names=c("Constant", "Lead", "Acidity", "interaction"), digits=3)
+
+```
+
+
+# Findings
+
+\begin{table}[h]
+\centering
+\caption{Data on Lead Presence}
+\label{tab:Lead} 
+\begin{tabular}{|l|c|c|c|} 
+\hline 
+  & \multicolumn{ 1 }{ c }{ (a) } & \multicolumn{ 1 }{ c }{ (b) } & \multicolumn{ 1 }{ c }{ (c) } \\ \hline
+ %           & (a)         & (b)         & (c)        \\ 
+Constant    & 93.556 $^*$   & 97.325 $^*$   & 175.326 $^*$ \\ 
+            & (2.347)     & (9.750)     & (15.275)   \\ 
+Lead        & -0.358      & -4.748      & -130.093 $^*$\\ 
+            & (3.108)     & (3.699)     & (19.296)   \\ 
+Acidity     &             & 3.022       & -17.621 $^*$ \\ 
+            &             & (2.474)     & (3.976)    \\ 
+interaction &             &             & 33.541 $^*$  \\ 
+            &             &             & (5.068)     \\
+ $N$         & 7599        & 6033        & 6033       \\ 
+$R^2$       & 0.000       & 0.001       & 0.008      \\ 
+adj. $R^2$  & -0.000      & 0.000       & 0.007      \\ 
+Resid. sd   & 134.147     & 142.184     & 141.682     \\ \hline
+ \multicolumn{4}{l}{\footnotesize{Standard errors in parentheses}}\\
+\multicolumn{4}{l}{\footnotesize{$^*$ indicates significance at $p< 0.05 $}} 
+\end{tabular} 
+ \end{table}
+
+The results for the first model in column (a) of Table \ref{tab:Lead}, indicate that when lead pipes are present, homicides per million people decrease by 0.36. However, the effect is not statistically significant, which means we cannot reject the null hypothesis that the effect of lead pipes being present on homicide rates is 0.
+
+The results for the second model in column (b) of Table \ref{tab:Lead}, indicate that when lead pipes are present, homicides per million people decrease by 4.7 when controlling for water acidity. Further, when water acidity increases by 1 unit, homicides per million increase by 3.0, when controlling for the presence of lead pipes. However, neither of these effects are statistically significant.
+
+The results for the third model in column (c) of Table \ref{tab:Lead}, indicate that when lead pipes are present, homicides per million people decrease by 130.1 when controlling for water acidity and the interaction between lead pipes and water acidity. Further, when water acidity increases by 1 unit, homicides per million decrease by 17.6, when controlling for the presence of lead pipes and the interaction between lead pipes and water acidity. Importantly, the presence of lead pipes interact, such that when lead pipes are present, a 1 unit increase in water acidity is associated with a 33.5 increase in homicides per million people (which explains why when water acidity is high, the presence of lead pipes is associated with higher homicides). All of these effects are statistically significant.
+
+The figure below shows the relationship between Water Acidity and Homicides per Million (for state-year combinations with and without lead pipes present).
+
+```{r echo = FALSE, include = TRUE}
+dta_l <- filter(dta, lead == 1)
+dta_nl <- filter(dta, lead == 0)
+
+plot(dta$acidity, dta$homicide_per_million, 
+     main = "Figure 1: Homicide Rate by Water Acidity",
+     xlab = "Water Acidity",
+     ylab = "Homicides per Million",
+      pch=20,
+     cex = 1.0,
+     col = ifelse(dta$lead == "1", "darkblue", "darkred"))
+legend("topright", 
+         pch=20,
+       c("Lead Present", "Lead Not Present"), 
+       col = c("darkblue", "darkred")) 
+abline(lm(dta_l$homicide_per_million~ dta_l$acidity), col = "darkblue")
+abline(lm(dta_nl$homicide_per_million~ dta_nl$acidity), col = "darkred")
+```
+

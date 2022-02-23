@@ -1,0 +1,191 @@
+---
+title: "Chapter 6 Problem Set"
+author: "Anandi Gupta"
+date: "11/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Load packages used in this session of R
+library(tidyverse)
+library(knitr)
+library(haven)
+
+# As needed, set path to folder where data is located.
+opts_knit$set(root.dir = "/Users/anandigupta/Downloads")
+```
+
+
+## Problem 2
+
+### Step 1: Load data
+
+```{r}
+load ("Ch6_Exercise2_FederalReserve.RData")
+```
+
+
+#### Part a
+
+```{r}
+
+#plot all observations
+plot(dta$Quarters[dta$Democrat == 0], dta$FEDFUNDS[dta$Democrat == 0],
+     main="FFR by Quarter from Election for Republican Presidents", 
+     xlab="Quarters (from election)", 
+     ylab="Federal Funds Rate",
+     pch=20,
+     cex = 1.0,
+     col="darkred")
+
+```
+
+
+```{r}
+
+#plot all observations
+plot(dta$Quarters[dta$Democrat == 1], dta$FEDFUNDS[dta$Democrat == 1],
+     main="FFR by Quarter from Election for Democrat Presidents", 
+     xlab="Quarters (from election)", 
+     ylab="Federal Funds Rate",
+     pch=20,
+     cex = 1.0,
+     col="darkblue")
+
+```
+
+We see that for terms where the President is Republican, increases in the number of quarters since the election is associated with a decrease in the FFR, whereas for terms where the President is Democrat, increases in the number of quarters since the election is associated with a decrease in the FFR.
+
+#### Part b
+
+```{r}
+#create interaction variable
+dta$qtrdem <- dta$Quarters * dta$Democrat
+```
+
+```{r}
+ols.1 <- lm(FEDFUNDS~ Quarters + Democrat + qtrdem, data = dta)
+summary(ols.1)
+```
+
+i) When the President is Republican, a 1 unit change in quarters from election decreases the FFR by .26.
+
+ii) When the President is Democrat, a 1 unit change in quarters from election increases the FFR by 0.3 (calculated as -0.26 + 0.55).
+
+#### Part c
+
+The effect of quarters is statistically significant for Republican presidents (the coefficient on quarters here is indicative of the effect for Republican presidents, which is the reference group). For Democrats, it is hard to see in this model, but can be easily seen if we flip the reference group to Democrats (below).
+
+```{r}
+dta$Republican <- ifelse(dta$Democrat == 0, 1, 0) 
+dta$qtrrep <- dta$Quarters * dta$Republican
+```
+
+```{r}
+ols.2 <- lm(FEDFUNDS~ Quarters + Republican + qtrrep, data = dta)
+
+summary(ols.2)
+```
+
+Thus we see that the effect of quarters is statistically significant for Democrat presidents as well.
+
+
+#### Part d
+
+```{r}
+dta_d <- filter(dta, Democrat == 1)
+dta_r <- filter(dta, Democrat == 0)
+
+plot(dta$Quarters, dta$FEDFUNDS, 
+     main = "FFR by Quarters from election",
+     xlab = "Quarters",
+     ylab = "FFR",
+      pch=20,
+     cex = 1.0,
+     col = ifelse(dta$Democrat == "1", "darkblue", "darkred"))
+legend("top", 
+         pch=20,
+       c("Republican", "Democrat"), 
+       col = c("darkred", "darkblue")) 
+abline(lm(dta_d$FEDFUNDS~ dta_d$Quarters), col = "darkblue")
+abline(lm(dta_r$FEDFUNDS~ dta_r$Quarters), col = "darkred")
+```
+
+As seen in our model, we see that for terms when the President is Democrat, the relationship between quarters since the election and the FFR is positive, whereas for terms when the President is Republican, the relationship between quarters since the election and the FFR is negative. 
+
+#### Part e
+
+```{r}
+ols.3 <- lm(FEDFUNDS~ Quarters + Democrat + qtrdem + lag_FEDFUNDS + inflation, data = dta)
+summary(ols.3)
+```
+
+From the above model, we see  that when we control for lagged FFR and inflation (both of which have a statistically significant and positive relationship with FFR), we see that there is no statistically significant relationship between quarters and FFR for Republican Presidents (p value for quarters > 0.05). Similarly, on average, the FFR is not statistically significantly different in terms with Republican and Democrat Presidents (p value for Democrat > 0.05). Lastly the relationship between quarters and FFR is not different for terms with Democrat and Republican presidents (p value of interaction > 0.05).Thus, we see that the FFR in a term is driven by inflation and lagged FFR.
+
+
+## Problem 4
+
+### Step 1: Load data
+
+```{r}
+load ("Ch6_Exercise4_Speeding_tickets.RData")
+```
+
+
+#### Part a
+
+```{r}
+ols.1 <- lm(Amount ~ Female, data = dta)
+summary(ols.1)
+```
+
+Yes, based on this very simple model, it appears that on average, fines are lower for women than men by $7.9 (statistically significant at the 1% level). However, this model likely suffers from endogeneity (miles per hour over is in the error term and female drivers may be less likely to driver faster and therefore receive lower fines).
+
+#### Part b 
+
+
+```{r}
+ols.2 <- lm(Amount ~ Female + Age + MPHover, data = dta)
+summary(ols.2)
+```
+
+After controlling for age and miles per hour over, we see that the difference of means test for men and women for fines is still statistically significant at the 1% level (on average, women get fined $3.55 less than men when controlling for age and miles per hour over.) However, there could still be endogeneity as the "treatment" is not randomized (for example women might be less likely to drive on state highways and therefore less likely to get pulled over by state patrol, which may set higher fines).
+
+
+#### Part c
+
+```{r}
+ols.3 <- lm(Amount ~ Female + Age + MPHover + Hispanic + Black, data = dta)
+summary(ols.3)
+```
+
+
+We see that on average, Hispanic drivers on average are fined $1.93 more than everyone else (note this is not statistically significant), and Black drivers on average are fined $2.03 less than everyone else, when controlling for gender, age, and miles per hour over.
+
+
+#### Part d
+
+We know that standard errors for the betas are impacted by variance of the regression (identical for all three variables), N (identical for all three variables), var (x) which is the same as all variables have 0 and 1 values, and $1- R^2{j}$. As Black and Hispanic are likely multicollinear with each other, the denominators for the standard errors for these two variables decrease, increasing the standard errors for Black and Hispanic relative to female.
+
+
+#### Part e
+
+```{r}
+dta$MPHfemale = dta$MPHover * dta$Female
+dta$MPHhispanic = dta$MPHover * dta$Hispanic
+dta$MPHblack = dta$MPHover * dta$Black
+
+
+ols.4 <- lm(Amount ~ Female + MPHover + Hispanic + Black + MPHfemale + MPHhispanic + MPHblack, data = dta)
+summary(ols.4)
+
+```
+
+MPHover does have a differential effect for female and Hispanic drivers, but not for Black drivers (note however, that the p value is just over 0.05 so it is possible this this coefficient may be suffering from a type II error). For female drivers, the impact of miles per hour over on fines is 0.74 lower than for males. For  Hispanic drivers, the impact of miles per hour over on fines is 0.81 higher than for non-Hispanics and non-Blacks.
+
+
+
+
+
+
+

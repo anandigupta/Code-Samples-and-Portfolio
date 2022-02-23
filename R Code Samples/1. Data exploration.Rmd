@@ -1,0 +1,101 @@
+---
+title: "Chapter 2 Problem Set - Problem 2"
+author: "Anandi Gupta"
+date: "9/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Load packages used in this session of R
+library(tidyverse)
+library(knitr)
+library(haven)
+
+# As needed, set path to folder where data is located.
+opts_knit$set(root.dir = "/Users/anandigupta/Downloads")
+```
+
+
+## Problem 2
+
+#### Step 1: Load data
+
+```{r}
+load ("Ch2_Exercise3_Height_and_Wages_US.RData")
+```
+
+
+#### (a) Summarize the wage, height (both height85 and height81), and sibling variables. Discuss briefly.
+
+
+```{r}
+summary(dta$wage96)
+summary(dta$height85)
+summary(dta$height81)
+summary(dta$siblings)
+```
+
+The mean wage is $14.2 per hour. However, the distribution is right skewed (positively skewed) as the mean is higher than the median. The range of wages is $0 - $1533.
+
+The mean adult height is 67.08 inches, slightly higher than the mean adoloscent height of 67.01 inches. However, it is important to note that missing data was more prevalent for adult height (1823 NA's vs 543 NA's).
+
+The mean number of siblings was 3.84. However, this variable appears to have some data entry errors. The minimum number of siblings -3 is not a possible range of values. We should cut off negative values from the sample. Similarly, the distribution is right skewed, and the max number of siblings is 29 which also seems unlikely to be true, but may not warrant being removed from the sample as it could be true. 
+
+#### (b) Create a scatterplot of wages and adult height (height85). Discuss any distinctive observations.
+
+```{r}
+#plot all observations
+plot(dta$wage96, dta$height85, 
+     main="Adult Height by Hourly Wages", 
+     xlab="Wages", 
+     ylab="Adult Height",
+     pch=20,
+     cex = 1.0,
+     col="darkblue")
+
+```
+
+There does not appear to be a clear pattern between wages and height. If anything, it looks like there may be a weak negative correlation but this is based on a few outliers for wage. It is possible that parent's education or wages may be better predictors, as height is determined by factors such as nutrition during childhood.
+
+#### (c) Create a scatterplot of wages and adult height that excludes the observations with wages above $500 per hour.
+
+```{r}
+#alternate plot to remove wages > 500 to see pattern more clearly
+plot(dta$wage96[dta$wage96 <= 500], dta$height85[dta$wage96 <= 500], 
+     main="Adult Height by Hourly Wages", 
+     xlab="Wages", 
+     ylab="Adult Height",
+     pch=20,
+     cex = 1.0,
+     col="darkblue")
+
+```
+
+While there still does not appear to be a clear relationship between wage and height, after excluding outliers with wage greater than $500, it appears there may be a weak positive relationship between wage and adult height. 
+
+#### (d) Create a scatterplot of adult height against adolescent height. Identify the set of observations where people’s adolescent height is more than their adult height. Do you think we should use these observations in any future analysis we conduct with this data? Why or why not?
+
+```{r}
+#plot all observations
+plot(dta$height81, dta$height85, 
+     main="Adult Height by Adolescent Height", 
+     xlab="Adolescent Height", 
+     ylab="Adult Height",
+     pch=20,
+     cex = 1.0,
+     col="darkblue")
+
+```
+As expected we see a strong positive correlation between adolescent height and adult height. However there are some instances where adolescent height is greater than adult height (identified in code below). For example, there are at least three individuals with adolescent height of 60 inches but adult less than 60 inches. These are likely data errors as it is unlikely the individuals shrunk during these 5 years.
+
+```{r}
+#identify instances where adult height less than adolescent height
+dta$height_error        <- (dta$height81 > dta$height85)
+table(dta$height_error)
+
+#alternate identification - where adult height less than adolescent height by more than 1 inch
+dta$height_error2 <- ((dta$height81 -  dta$height85) > 1)
+table(dta$height_error2)
+```
+
+There are 1805 observations where adolescent height is greater than adult height. These appear to be data errors, as it is unlikely that individuals would have shrunk during these years. However, it is also possible that the adult height reported may just be more accurate than the adolescent height reported. Further, 1805 is a significant percentage of the total sample, so dropping such a large proportion of the sample might be concerning. It may be appropriate to instead choose a threshold for which adolescent height was much greater than adult height (example 1 inch difference). Using this updated threshold, we would only drop 494 observations from our sample. 

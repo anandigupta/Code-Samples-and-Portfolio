@@ -1,0 +1,268 @@
+---
+title: "Chapter 12 Problem Set"
+author: "Anandi Gupta"
+date: "12/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Load packages used in this session of R
+library(tidyverse)
+library(knitr)
+library(haven)
+library(mfx)
+
+# As needed, set path to folder where data is located.
+opts_knit$set(root.dir = "/Users/anandigupta/Downloads")
+```
+
+## Problem 2
+
+### Step 1: Load data
+
+```{r}
+load ("Ch12_Exercise2_Global_warming.RData")
+```
+
+### Part a
+#### (i)
+```{r}
+lpm <- lm(humancause ~ male + white + educ + incomecat 
+               + age + party7, data = dta)
+
+summary(lpm)
+```
+
+Based on the t statistic, it appears that party affiliation has the biggest impact on saying that global warming is real and caused by humans (such that more democrat leaning people have a higher likelihood of saying this). For every 1 unit increase in how democratic a person is, the probability of saying this increases by 8.7%.
+
+#### (ii)
+
+```{r}
+# get the predictions 
+lpm_pred <- predict(lpm)
+```
+
+```{r}
+max(lpm_pred)
+```
+
+```{r}
+min(lpm_pred)
+```
+
+
+The max probability is 0.74 and the minimum is -0.2 (which is why we should not use a linear probability model as probabilities should be between 0 and 1).
+
+#### (iii)
+
+```{r}
+lpm2 <- lm(humancause ~ male + white + educ + incomecat 
+               + age + agesq + party7, data = dta)
+
+round(summary(lpm2)$coefficients, digits = 4)
+```
+
+We now see that the relationship between believing in global warming and age represents a u-shape (negative initially, and positive after a point for higher ages.)
+
+
+
+### Part b
+
+#### (i)
+
+```{r}
+pm <- glm(humancause ~ male + white + educ + incomecat 
+               + age + agesq + party7, data = dta, 
+            family = binomial(link = "probit"))
+summary(pm)
+```
+
+As we can see the probit model gives us coefficients with similar (but not identical) statistical significance as the linear probability model (such that in both models, education, age, age squared and porty are statistically siginicant predictors of believing in global warming).
+
+#### (ii)
+
+```{r}
+# get the predictions 
+pm_pred <- predict(pm, type = "response")
+```
+
+```{r}
+max(pm_pred)
+```
+```{r}
+min(pm_pred)
+```
+
+The minimum probability is now 0.02 and the maximum probability is 0.80 (probabilities now on a scale of 0 to 1, which is intuitive).
+
+
+#### (iii)
+
+```{r}
+## Generate "P1" - the predicted values at actual values of X
+# this is a probit model, so we are plugging in a "traditional model" 
+      # ...into a probability density function 
+P1 = pnorm(coef(pm)[1] + coef(pm)[2] *dta$male             
+           + coef(pm)[3]*dta$white 
+           + coef(pm)[4]*dta$educ + coef(pm)[5] *dta$incomecat        
+           + coef(pm)[6]*dta$age + coef(pm)[7]*dta$agesq 
+           + coef(pm)[8] *dta$party7)
+```
+
+
+```{r}
+## Generate "P2" - the predicted values with party increased by one
+P2.party = pnorm(coef(pm)[1] + coef(pm)[2] *dta$male             
+           + coef(pm)[3]*dta$white 
+           + coef(pm)[4]*dta$educ + coef(pm)[5] *dta$incomecat        
+           + coef(pm)[6]*dta$age + coef(pm)[7]*dta$agesq 
+           + coef(pm)[8] *(dta$party7 + 1))
+```
+
+```{r}
+Diff.party<- P2.party - P1
+```
+
+```{r}
+mean(Diff.party, na.rm = TRUE)
+```
+
+Marginal effects:
+
+```{r}
+## Use the mfx package (installed above)
+probitmfx(pm, data = dta, atmean = FALSE)
+```
+
+Using the discrete-differences method for continuous variables, we see that the mean effect for party is the same as in the initial linear probability model (a 1 unit increase in leaning democrat increases the likelihood of believing global warming is real by 8.7%) This is also very similar to the marginal effects model (where a 1 unit increase in leaning democrat increases the likelihood of believing global warming is real by 8.3%)
+
+
+#### (iv)
+
+
+```{r}
+## Generate "P1" - the predicted values at actual values of X
+# this is a probit model, so we are plugging in a "traditional model" 
+      # ...into a probability density function 
+P1.a = pnorm(coef(pm)[1] + coef(pm)[2] *0            
+           + coef(pm)[3]*dta$white 
+           + coef(pm)[4]*dta$educ + coef(pm)[5] *dta$incomecat        
+           + coef(pm)[6]*dta$age + coef(pm)[7]*dta$agesq 
+           + coef(pm)[8] *dta$party7)
+```
+
+
+```{r}
+## Generate "P2" - the predicted values with party increased by one
+P2.male = pnorm(coef(pm)[1] + coef(pm)[2] *1           
+           + coef(pm)[3]*dta$white 
+           + coef(pm)[4]*dta$educ + coef(pm)[5] *dta$incomecat        
+           + coef(pm)[6]*dta$age + coef(pm)[7]*dta$agesq 
+           + coef(pm)[8] *(dta$party7))
+```
+
+```{r}
+Diff.male<- P2.male - P1.a
+```
+
+```{r}
+mean(Diff.male, na.rm = TRUE)
+```
+
+
+Using the discrete-differences method for discrete variables, we see that the mean effect for gender is the same as in the initial linear probability model (abeing male increases the likelihood of believing global warming is real by 2%) This is also very similar to the marginal effects model (where being male also increases the likelihood of believing global warming is real by approximately 2%)
+
+
+### Part c
+
+
+```{r}
+# Create categorical dummy variables
+dta$treatment_2 <- (dta$treatment == 2)
+dta$treatment_3 <- (dta$treatment == 3)
+dta$treatment_4 <- (dta$treatment == 4)
+results.1a <- lm(warmagree ~ treatment_2 + treatment_3 + treatment_4, data = dta)
+summary(results.1a)
+```
+
+Treatment 2 is most effective in affecting opinion about global warming, as it increases the probability of believing global warming is real by 0.05%. Note, however, that this effect is significant only at the 10% level, not the 5% level. At an alpha level of 0.05, we conclude that none of the treatments differ significantly in their effect from treatment 1 (aka they are all equally effective or ineffective).
+
+## Problem 4
+
+### Step 1: Load data
+
+```{r}
+load ("Ch12_Exercise4_Congress_donors.RData")
+```
+
+### Part a
+
+The observational data would likely suffer from endogeneity. For example, people who work for influential interest groups (for example executives in a pharmaceutical company) may be more likely to be campaign donors as well as get meetings with Congress people due to their lobbying activities, which would cause endogeneity as their job would be in the error term, and would be correlated with both the independent and dependent variable.
+
+### Part b
+
+```{r}
+#Create dummy variables for meeting w member of congress
+dta$met_congress<- (dta$staffrank == 5)
+dta$met_senior_staff<- (dta$staffrank > 2)
+dta$met_junior_staff <- (dta$staffrank == 1)
+
+```
+
+```{r}
+pm <- glm(met_congress ~ treat_donor, data = dta, 
+            family = binomial(link = "probit"))
+summary(pm)
+```
+
+From the probit model we see that there is no statistically significant relationship (at the 5 percent level) between being a donor and meeting with a congress person. If we use an alpha level of 10 percent, we see that the probability of meeting with a congress person does increase for donors.
+
+
+### Part c
+
+Several factors may be missing from the model - for example, gender, age, race, income, careers of the people requesting the meeting might influence their likelihood of meeting with a congress person. However, adding in such factors will only reduce the variance of the $\hat\beta_1$ distribution (aka increase precision), but omitting these factors do not make our current estimate biased, as the treatment has been randomly assigned (and therefore cannot be correlated with these factors).
+
+### Part d
+
+```{r}
+lpm <- lm(met_congress ~ treat_donor, data = dta)
+summary(lpm)
+```
+
+Again, we see that being a donor has no statistically significant relationship with meeting with a congress person (at the 5 percent level). At the 10 percent level, we can conclude that being a donor increases the likelihood of meeting with a congress person by 5.5%.
+
+```{r}
+pm_pred <- predict(pm, type = "response")
+lpm_pred <- predict(lpm)
+```
+
+```{r}
+cor(pm_pred, lpm_pred)
+```
+
+The correlation between the fitted values of the linear probability model and the probit model is 1, indicating that the fitted values are basically identical.
+
+### Part e
+
+```{r}
+lpm2<- lm(met_senior_staff ~ treat_donor, data = dta)
+summary(lpm2)
+```
+
+We see that donors have a 13% higher likelihood of meeting with senior staffers.
+
+
+### Part f
+
+
+```{r}
+lpm3<- lm(met_junior_staff ~ treat_donor, data = dta)
+summary(lpm3)
+```
+
+
+We see that being a donor has no effect on the probability of meeting with a low-level staffer. 
+
+### Part g
+
+The balance tests indicate that there were no significant differences in the control variables (ie percent vote for Obama in the Congressional district and the total amount of campaign contributions received by the Congress member) between the tratment and control groups indicating that randomization was successful (at least on these two dimensions) and that the two groups did not systematically differ from each other.

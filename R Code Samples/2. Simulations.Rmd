@@ -1,0 +1,210 @@
+---
+title: "Chapter 3 Problem Set"
+author: "Anandi Gupta"
+date: "9/21/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Load packages used in this session of R
+library(tidyverse)
+library(knitr)
+library(haven)
+
+# As needed, set path to folder where data is located.
+opts_knit$set(root.dir = "/Users/anandigupta/Downloads")
+```
+
+## Chapter 3 Exercise 2 
+
+```{r}
+##
+## ## Ch3_SimulateBeta_RCode.R
+##
+##
+
+## Set model and simulation parameters
+Obs       = 100		# Number of observations in each simulation
+Reps      = 500		# Number of times we run the simulation
+TrueBeta0	= 12000	# "True" beta0 for the simulated
+TrueBeta1	= 1000	# "True" beta1 for the simulated
+SD 		    = 10000	# The standard deviation of the error. The bigger this is, the larger the average value of epsilon
+Ed = 16 * runif(Obs)# Simulate years of education as being between 0 and 16
+  # "runif" is a uniform random variable between 0 and 1, with all values having equal probability
+CoefMatrix	= matrix(NA, Reps, 2)	# Matrix to store our results.  
+  # 1st argument is NA, meaning we store "not available" as initial values in the matrix
+  # 2nd argument is Reps, meaning the number of rows is equal to number of times we run the simulations
+  # 3rd argument is 2 meaning we have 2 columns, one for storing the beta0 estimate and one for storing the beta1 estimate
+
+# Loop: repeat the commands between the brackets multiple times
+for (ii in 1:Reps) { 
+  Salary 	= TrueBeta0+ TrueBeta1* Ed + SD*rnorm(Obs) 	
+  # Generate Salary = beta0 + beta1*Ed + epsilon
+  # beta0 is the constant
+  # beta1 is the number multiplied by the X variable
+  # Epsilon has 2 parts: SD is the standard deviation; the bigger it is, the more epsilon varies.
+  # "runif" is a uniform random variable between 0 and 1, with all values having equal probability
+  OLS.result = lm(Salary ~ Ed) # Run a regression using simulated values of Y
+  CoefMatrix[ii, ]	= coefficients(OLS.result)	 # Put OLS.result coefficients in row ii of CoefMatrix
+  ## For fun: plot results for each survey
+  ## plot(Ed, Salary, pch = 19, col= "darkgreen")		
+  ## abline(OLS.result, lwd = 3, col= "darkgreen")
+  ## Sys.sleep(0.075)		## Include to slow down calculations so we can see each plot (briefly); not necessary
+}							 # This closes the "loop"
+
+c(mean(CoefMatrix[,1]), min(CoefMatrix[,1]), max(CoefMatrix[,1]))  
+# Average, min and max of beta_0 estimates
+
+c(mean(CoefMatrix[,2]), min(CoefMatrix[,2]), max(CoefMatrix[,2]))  
+# Average, min and max of beta_1 estimates
+
+#
+# For use in Chapter 3, #2 part (g):
+#
+# Kernel Density Plot
+plot(density(CoefMatrix[,2]), main = 'Kernel Density Estimate')
+```
+
+
+Note: I have answered the below questions by manipulating the inputs in the code above, but did not copy over the code each time. 
+
+#### 2a
+
+The mean of $\hat\beta_{0}$ across the 50 simulations is 11,873 and the mean of $\hat\beta_{1}$ is 1,018. These values are very close to the true values of 12,000 and 1,000, indicating that on average our $\hat\beta_{1}$ estimator is pretty good (with a large sample size, we would expect the $\hat\beta_{1}$ distribution to be normal, and if our estimator is unbiased, the mean of the distribution should equal the true value).  
+
+#### 2b
+
+The minimum of $\hat\beta_{1}$ is 643 and the maximum is 1,497, which are both quite far from the true value. This does not however imply that the coefficients are biased. Based on "luck of the draw", it is possible to get $\hat\beta_{1}$ estimates at the low or high end of the distribution. As long as the estimator is not systematically higher or lower than the true value, it is not biased.
+
+
+#### 2c
+When we increase the sample size to 1,000 we see that the mean of the $\hat\beta_{1}$ distribution is now 999, with a minimum value of 848 and maximum value of 1,256. This is because increasing the sample size N lowers the variance of the $\hat\beta_{1}$ distribution, and the sample averages are more tightly distributed around the true value. 
+
+#### 2d
+
+When we decrease the sample size to 20, we see that the mean of the $\hat\beta_{1}$ distribution is now 976, with a minimum value of -136 and maximum value of 2,850. This is because decreasing the sample size N increases the variance of the $\hat\beta_{1}$ distribution, and the sample averages are more spread out around the true value. Thus, with a small sample size, it is more likely to get estimates that are at the extreme high or low ends of the $\hat\beta_{1}$ distribution. 
+
+#### 2e
+
+When we decrease the standard deviation of the error to 500, we see that the mean of the $\hat\beta_{1}$ distribution is now 1000, with a minimum value of 972 and maximum value of 1,024. This is because decreasing the SD (and therefore decreasing the variance of the regression) lowers the variance of the $\hat\beta_{1}$ distribution, and the sample averages are more tightly distributed around the true value. Conceptually, the variance of the regression measures how well the model explains the variance in Y, and a lower variance means that the fitted values are on average closer to the observed values.
+
+
+#### 2f
+
+When we increase the standard deviation of the error to 50,000, we see that the mean of the $\hat\beta_{1}$ distribution is now 927, with a minimum value of -1,432 and maximum value of 2,973. This is because increasing the SD (and therefore increasing the variance of the regression) increases the variance of the $\hat\beta_{1}$ distribution, and the sample averages are more spread out around the true value. Conceptually, the variance of the regression measures how well the model explains the variance in Y, and a higher variance means that the fitted values are on average further from the observed values.
+
+
+#### 2g
+
+When we increase the number of simulations to 500 (i.e run our regression on 500 different samples), we see that the mean of the $\hat\beta_{1}$ distribution is close to a 1000, with a fairly large range. However, the density plot shows that for the 500 simulations, the $\hat\beta_{1}$ distribution looks to be normally distributed, and it is far more likely to observe estimates closer to the true value (or within one or two standard deviations from the mean/true value) than it is to observe the extreme values (for example, very few samples will generate estimates lower than 500 or higher than 1500).
+
+
+## Chapter 3 Exercise 3 
+
+
+#### Step 1: Load data
+
+```{r}
+load ("Ch3_Exercise3_Height_and_Wages_UK.RData")
+```
+
+#### 3a
+
+```{r}
+ols.1 = lm(dta$gwage33 ~ dta$height33)
+summary(ols.1)
+```
+
+In this model, $\hat\beta_{0}$ is the intercept, and represents the predicted wage at age 33 when height is 0. $\hat\beta_{1}$ is the coefficient on height (or the slope of the equation), and tells us that on average, for every 1 inch increase in height, wages increase by 0.24 GBP. Note, however, that the standard errors on this estimate are large (0.18), implying that the variance of the $\hat\beta_{1}$ distribution is large, and the estimates are quite spread out around the mean.
+
+#### 3b
+
+```{r}
+#plot all observations
+plot(dta$height33, dta$gwage33, 
+     main="Wages by Height at age 33", 
+     xlab="Height", 
+     ylab="Wages",
+     pch=20,
+     cex = 1.0,
+     col="darkblue")
+
+```
+
+From the scatter plot above, we see a few observations that appear to be outliers (with wages greater than 400). Additionally, there are some points with height less than 50 inches which also appear to be outliers.
+
+
+#### 3c
+
+```{r}
+#drop outlier observations
+plot(dta$height33[dta$height33 >=40 & dta$gwage33 <= 400], dta$gwage33[dta$height33 >=40 & dta$gwage33 <= 400], 
+     main="Wages by Height at age 33", 
+     xlab="Height", 
+     ylab="Wages",
+     pch=20,
+     cex = 1.0,
+     col="darkblue")
+
+```
+
+After dropping the observations below 40 inches (who tended to be concentrated at 0 wages) or with extremely high wages (greater than 400 pounds), the plot seems to be a more reasonable basis for a statistical analysis. This is because the outliers tended to be on the the lower or higher ends of the X-axis rather than in the middle, and therefore would be more likely to influence the results of the regression. In particular, it is unlikely that so many adult men at age 33 would be under 40 inches tall (possibly indicative of measurement error), and even if there wasn't a measurement error, including these observations may be more telling of a story of discrimination against people with medical conditions such as dwarfism, rather than the average relationship between height and wages.
+
+
+#### 3d
+
+```{r}
+ols.2 = lm(gwage33 ~ height33, data = dta[dta$height33 >=40 & dta$gwage33 <= 400,])
+summary(ols.2)
+```
+
+After dropping the outlier observations, we now see a 0.27 coefficient for height, indicating that on average, for every 1 inch increase in adult height, wages increase by 0.27 pounds (i.e the regression line now has a steeper slope than before). Further, the standard error for this estimate decreased to 0.07, indicating that the variance of the $\hat\beta_{1}$ distribution is smaller, and the estimates are more tightly distributed around the mean.
+
+#### 3e
+
+```{r}
+dta_no_outliers <- dta[dta$height33 >=40 & dta$gwage33 <= 400,]
+dta_small <- dta_no_outliers[1:800,]
+ols.3 = lm(gwage33 ~ height33, data = dta_small)
+summary(ols.3)
+```
+
+We see that when we decrease the size of the sample, the coefficient for height does not change much (still approximately 0.27 pounds for every additional inch), but the standard errors increase dramatically. This makes sense as N is the denominator in the variance equation, and decreasing N will increase the variance of the $\hat\beta_{1}$ distribution. Thus, the estimates will be more spread out around the mean.
+
+
+## Problem Set 3 Question 3 - Derivation
+
+#### Part 1
+
+Conceptually, this model has two components $\beta_{o}$ which is going to represent the average of Y for the sample, and the error term. If we don't identify any variable that may help us better predict the Y term for a given observation, we will always predict the mean. The error term will then represent how much the observed value differs from the mean (which is our fitted value).  
+
+#### Part 2
+
+Derivation: 
+
+$$
+Y_{i} = \beta_{o} + \epsilon{i}\\
+\hat\epsilon{i} = Y_{i}  - \hat\beta_{o}\\
+\sum_{i=1}^{N}\epsilon_{i}^2 = \sum_{i=1}^{N}(Y{i} - \hat\beta_{o})^2\\
+\frac{d\sum_{i=1}^{N}\hat{\epsilon_i}^2}{d\beta_0} = \sum_{i=1}^{N}(-2)(Y_i - \hat{\beta_0})\\
+\sum_{i=1}^{N}(-2)(Y_i - \hat{\beta_0}) = 0\\
+\sum_{i=1}^{N}(Y_i - \hat{\beta_0}) = 0\\
+\sum_{i=1}^{N}(Y_i) - \sum_{i=1}^{N}(\hat\beta_{o}) = 0\\
+\sum_{i=1}^{N}(Y_i) = \sum_{i=1}^{N}(\hat\beta_{o})\\
+\sum_{i=1}^{N}(Y_i) = \hat\beta_{o}\sum_{i=1}^{N}1\\
+\frac{\sum_{i=1}^{N}(Y_i)}{N} = \hat\beta_{o}\\
+\Rightarrow \bar{Y_i} = \hat\beta_{o}
+$$
+Explanation:
+
+Goal: minimize the sum of the squared residuals
+Step 1: Take the derivative with respect to $\hat\beta_{o}$
+Step 2: Set the derivative to 0
+Step 3: Divide both sides by -2
+Step 4: Separate the sum into additive pieces
+Step 5: Rearrange terms
+Step 6: Pull out $\hat\beta_{o}$ from summation as it is a constant
+Step 7: Divide both sides by N
+Step 8: Dividing the sum of Y by N gives the mean of Y, which is equivalent to $\hat\beta_{o}$
+
+
