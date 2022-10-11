@@ -30,8 +30,7 @@ url1 = "https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/Indic
 
 #Climate related disasters
 url2b = "https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/Indicator_11_1_Physical_Risks_Climate_related_disasters_frequency/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=json"
-url2 = "https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/Indicator_11_1_Physical_Risks_Climate_related_disasters_frequency/FeatureServer/0/query?where=1%3D1&outFields=Country,ISO2,ISO3,Indicator,Code,Unit,F2016,F2017,F2018,F2019,F2020,F2021,Source&outSR=4326&f=json"
-
+url2 = "https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/Indicator_11_1_Physical_Risks_Climate_related_disasters_frequency/FeatureServer/0/query?where=1%3D1&outFields=Country,ISO2,ISO3,Indicator,Unit,Source,F2016,F2017,F2018,F2019,F2020,F2021&outSR=4326&f=json"
 #inform risk
 url3 = "https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/Indicator_11_3_Physical_Risks__Index_for_Risk_Management/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=json"
 
